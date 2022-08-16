@@ -226,8 +226,8 @@ class rainman:
     def analyze(self, rep: report):
         while 1:
             rep.analyze()
-            # sec = random.randint(30, 300)
-            sec = random.randint(1, 5)
+            sec = random.randint(30, 300)
+            # sec = random.randint(1, 5)
             self._logger.info("fetch {} in {}s...".format(rep.name(), sec))
             time.sleep(sec)
 
