@@ -16,6 +16,7 @@ import yaml
 class weather:
     time: str
     date: str
+    date_text: str
     whole_wea: str
     # day_wea: str
     # night_wea: str
@@ -54,7 +55,10 @@ class alarm:
         self._logger = logging.getLogger()
         self._rain_change = []
         self._tmp_dec_change = []
-        self._rain_days = []
+        self._rain = []
+        self._rain_flag = {}
+        self._tmp_dec = []
+        self._tmp_dec_flag = {}
         self._email = email
 
     def try_alarm(self, pre_old_weather: weather, old_weather: weather, pre_new_weather: weather, new_weather: weather):
@@ -67,17 +71,44 @@ class alarm:
             self._tmp_dec_change.append(
                 "{}: {} -> {}: {}".format(pre_new_weather.date, pre_new_weather.day_temp, new_weather.date,
                                           new_weather.day_temp))
+        if new_weather.date_text == "明天" and self._tmp_dec_flag.get(new_weather.date) is None:
+            self._tmp_dec_flag[pre_new_weather.date] = None
+            self._tmp_dec_flag[new_weather.date] = True
+            if int(pre_new_weather.day_temp) - int(new_weather.day_temp) > 5:
+                self._tmp_dec.append(
+                    "{}: {} -> {}: {}".format(pre_new_weather.date, pre_new_weather.day_temp, new_weather.date,
+                                              new_weather.day_temp))
+
+        if new_weather.date_text == "明天" and self._rain_flag.get(new_weather.date) is None:
+            self._rain_flag[pre_new_weather.date] = None
+            self._rain_flag[new_weather.date] = True
+            if "雨" in new_weather.whole_wea:
+                self._rain.append(
+                    "{}: {} -> {}".format(new_weather.date, new_weather.whole_wea, new_weather.whole_wea))
 
     def do_it(self):
         content = []
+        subject = []
         if len(self._rain_change) > 0:
-            content.append("下雨天预报改变：\n" + "\n".join(self._rain_change))
+            s = "下雨天预报改变"
+            subject.append(s)
+            content.append(s + "：\n" + "\n".join(self._rain_change))
         if len(self._tmp_dec_change) > 0:
-            content.append("气温下降预报改变：\n" + "\n".join(self._tmp_dec_change))
+            s = "气温下降预报改变"
+            subject.append(s)
+            content.append(s + "：\n" + "\n".join(self._tmp_dec_change))
+        if len(self._tmp_dec) > 0:
+            s = "气温下降"
+            subject.append(s)
+            content.append(s + "：\n" + "\n".join(self._tmp_dec))
+        if len(self._rain) > 0:
+            s = "下雨天"
+            subject.append(s)
+            content.append(s + "：\n" + "\n".join(self._rain))
         if len(content) > 0:
             content = "\n".join(content)
             self._logger.info(content)
-            self._email.send("天气预报改变", content)
+            self._email.send("\n".join(subject), content)
 
 
 class rainman:
@@ -121,8 +152,8 @@ class rainman:
     def start(self):
         while 1:
             self.analyze()
-            # sec = random.randint(30, 300)
-            sec = random.randint(1, 5)
+            sec = random.randint(30, 300)
+            # sec = random.randint(1, 5)
             self._logger.info("analyze in {}s...".format(sec))
             time.sleep(sec)
 
@@ -144,6 +175,7 @@ class rainman:
             weather_d.whole_temp = data['whole_temp']
             weather_d.day_temp = data['day_temp']
             weather_d.night_temp = data['night_temp']
+            weather_d.date_text = data['date_text']
             new_weather_m[weather_d.date] = weather_d
 
         if len(old_weather_m) != 0:
