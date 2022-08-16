@@ -255,14 +255,13 @@ def main():
     if debug:
         lev = logging.DEBUG
     hs = []
-    logging.basicConfig(level=lev,
-                        format='%(asctime)s %(levelname)s %(pathname)s:%(lineno)d %(thread)s %(message)s')
     file_handler = handlers.TimedRotatingFileHandler(filename="./rainman.log", when='D', backupCount=1,
                                                      encoding='utf-8')
     hs.append(file_handler)
     console_handler = logging.StreamHandler(sys.stdout)
     hs.append(console_handler)
-    logging.basicConfig(level=lev, format='%(message)s', handlers=hs)
+    logging.basicConfig(level=lev,
+                        format='%(asctime)s %(levelname)s %(pathname)s:%(lineno)d %(thread)s %(message)s', handlers=hs)
     logger = logging.getLogger()
     rm = rainman(conf)
     logger.info("rainman info: {0}".format(rm))
