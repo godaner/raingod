@@ -3,6 +3,7 @@ import json
 import logging
 import random
 import smtplib
+import threading
 import urllib.request
 from email.header import Header
 from email.mime.text import MIMEText
@@ -26,32 +27,45 @@ class weather:
 
 
 class email:
-    pwd: str
-    user: str
-    to: []
-    smtp: str
 
-    def __init__(self):
+    def __init__(self, conf):
         self._logger = logging.getLogger()
+        self._conf = conf
+        try:
+            self._pwd = self._conf['pwd']
+        except BaseException as e:
+            raise Exception("get email pwd err: {}".format(e))
+
+        try:
+            self._user = self._conf['user']
+        except BaseException as e:
+            raise Exception("get email user err: {}".format(e))
+        try:
+            self._to = str(self._conf['to']).split(",")
+        except BaseException as e:
+            raise Exception("get email to err: {}".format(e))
+        try:
+            self._smtp = self._conf['smtp']
+        except BaseException as e:
+            raise Exception("get email smtp err: {}".format(e))
 
     def send(self, subject: str, content: str):
-        smtp = smtplib.SMTP(self.smtp)
-        smtp.login(self.user, self.pwd)
+        smtp = smtplib.SMTP(self._smtp)
+        smtp.login(self._user, self._pwd)
         try:
             message = MIMEText(content, 'plain', 'utf-8')
             message['From'] = Header("rainman", 'utf-8')
-            # message['To'] = Header(self.to, 'utf-8')
             message['Subject'] = Header(subject, 'utf-8')
-            smtp.sendmail(self.user, self.to, message.as_string())
-            self._logger.error("send email to {} success".format(self.to))
+            smtp.sendmail(self._user, self._to, message.as_string())
+            self._logger.error("send email to {} success".format(self._to))
         except smtplib.SMTPException as e:
-            self._logger.error("send email to {} fail: {}".format(self.to, e))
+            self._logger.error("send email to {} fail: {}".format(self._to, e))
         finally:
             smtp.quit()
 
 
 class alarm:
-    def __init__(self, email: email):
+    def __init__(self, name: str, email: email):
         self._logger = logging.getLogger()
         self._rain_change = []
         self._tmp_dec_change = []
@@ -60,17 +74,24 @@ class alarm:
         self._tmp_dec = []
         self._tmp_dec_flag = {}
         self._email = email
+        self._name = name
 
     def try_alarm(self, pre_old_weather: weather, old_weather: weather, pre_new_weather: weather, new_weather: weather):
         if "雨" not in old_weather.whole_wea and "雨" in new_weather.whole_wea:
+            self._rain_change.append(
+                "{}: {} -> {}".format(old_weather.date, old_weather.whole_wea, new_weather.whole_wea))
+        if "雨" in old_weather.whole_wea and "雨" not in new_weather.whole_wea:
             self._rain_change.append(
                 "{}: {} -> {}".format(old_weather.date, old_weather.whole_wea, new_weather.whole_wea))
         old_tmp = pre_old_weather is not None and (int(pre_old_weather.day_temp) - int(old_weather.day_temp)) < 5
         new_tmp = pre_new_weather is not None and (int(pre_new_weather.day_temp) - int(new_weather.day_temp)) >= 5
         if old_tmp and new_tmp:
             self._tmp_dec_change.append(
-                "{}: {} -> {}: {}".format(pre_new_weather.date, pre_new_weather.day_temp, new_weather.date,
-                                          new_weather.day_temp))
+                "{}: {} -> {}: {} => {}: {} -> {}: {}".format(pre_old_weather.date, pre_old_weather.day_temp,
+                                                              old_weather.date,
+                                                              old_weather.day_temp, pre_new_weather.date,
+                                                              pre_new_weather.day_temp, new_weather.date,
+                                                              new_weather.day_temp))
         if new_weather.date_text == "明天" and self._tmp_dec_flag.get(new_weather.date) is None:
             self._tmp_dec_flag[pre_new_weather.date] = None
             self._tmp_dec_flag[new_weather.date] = True
@@ -108,33 +129,15 @@ class alarm:
         if len(content) > 0:
             content = "\n".join(content)
             self._logger.info(content)
-            self._email.send("\n".join(subject), content)
+            self._email.send(self._name + ": " + ",".join(subject), content)
 
 
-class rainman:
-    def __init__(self, conf: {}):
+class report:
+    def __init__(self, conf):
         self._logger = logging.getLogger()
         self._conf = conf
-        self._emails = []
         self._weather_m = {}
-        self._email = email()
-        try:
-            self._email.pwd = self._conf["email"]['pwd']
-        except BaseException as e:
-            raise Exception("get email pwd err: {}".format(e))
-
-        try:
-            self._email.user = self._conf["email"]['user']
-        except BaseException as e:
-            raise Exception("get email user err: {}".format(e))
-        try:
-            self._email.to = str(self._conf["email"]['to']).split(",")
-        except BaseException as e:
-            raise Exception("get email to err: {}".format(e))
-        try:
-            self._email.smtp = self._conf["email"]['smtp']
-        except BaseException as e:
-            raise Exception("get email smtp err: {}".format(e))
+        self._email = email(conf['email'])
 
         try:
             self._url = self._conf["url"]
@@ -144,24 +147,22 @@ class rainman:
             self._headers = self._conf["headers"]
         except BaseException as e:
             raise Exception("get headers err: {}".format(e))
+        try:
+            self._name = self._conf["name"]
+        except BaseException as e:
+            raise Exception("get name err: {}".format(e))
+        self._alarm = alarm(self._name, self._email)
         return
 
-    def __str__(self):
-        return str(self._conf)
-
-    def start(self):
-        while 1:
-            self.analyze()
-            sec = random.randint(30, 300)
-            # sec = random.randint(1, 5)
-            self._logger.info("analyze in {}s...".format(sec))
-            time.sleep(sec)
+    def name(self) -> str:
+        return self._name
 
     def analyze(self):
         req = urllib.request.Request(self._url, data=None, headers=self._headers)
         resp = urllib.request.urlopen(req)
         resp = json.loads(resp.read())
-        self._logger.info("resp: {}".format(resp))
+
+        self._logger.info("fetch {} resp code: {}".format(self._name, resp['code']))
         new_weather_m = {}
         old_weather_m = self._weather_m
         for data in resp['data']:
@@ -179,7 +180,6 @@ class rainman:
             new_weather_m[weather_d.date] = weather_d
 
         if len(old_weather_m) != 0:
-            al = alarm(self._email)
             pre_new_weather = None
             pre_old_weather = None
             for k in old_weather_m:
@@ -187,11 +187,43 @@ class rainman:
                 new_weather = new_weather_m.get(k)
                 if new_weather is None:
                     continue
-                al.try_alarm(pre_old_weather, old_weather, pre_new_weather, new_weather)
+                self._alarm.try_alarm(pre_old_weather, old_weather, pre_new_weather, new_weather)
                 pre_new_weather = new_weather
                 pre_old_weather = old_weather
-            al.do_it()
+            self._alarm.do_it()
         self._weather_m = new_weather_m
+
+
+class rainman:
+    def __init__(self, conf: {}):
+        self._logger = logging.getLogger()
+        self._conf = conf
+        self._reports = []
+        try:
+            reports = self._conf["reports"]
+            for rep in reports:
+                self._reports.append(report(rep))
+        except BaseException as e:
+            raise Exception("get reports err: {}".format(e))
+
+    def __str__(self):
+        return str(self._conf)
+
+    def analyze(self, rep: report):
+        while 1:
+            rep.analyze()
+            sec = random.randint(30, 300)
+            # sec = random.randint(1, 5)
+            self._logger.info("fetch {} in {}s...".format(rep.name(), sec))
+            time.sleep(sec)
+
+    def start(self):
+        for rep in self._reports:
+            t = threading.Thread(target=self.analyze, args=(rep,))
+            t.setDaemon(True)
+            t.start()
+        while 1:
+            time.sleep(1000)
 
 
 def main():
