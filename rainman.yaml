@@ -1,0 +1,22 @@
+email:
+  user: 1138829222@qq.com
+  pwd: xxxxxxxxx
+  smtp: smtp.qq.com:25
+  #  to: 1138829222@qq.com,2434648209@qq.com
+  to: 1138829222@qq.com
+url: "https://tianqi.2345.com/Pc/apiGet15Days"
+headers:
+  Accept-Language: zh,zh-CN;q=0.9,en;q=0.8
+  Connection: keep-alive
+  #  Cookie: Hm_lvt_a3f2879f6b3620a363bec646b7a8bcdd=1660533412; Hm_lvt_eaa57ca47dacb4ad4f5a257001a3457c=1660534937; lastCountyId=57411; lastCountyPinyin=nanchong; lastCityId=57411; lastProvinceId=35; Hm_lpvt_a3f2879f6b3620a363bec646b7a8bcdd=1660629042; Hm_lpvt_eaa57ca47dacb4ad4f5a257001a3457c=1660629048; lastCountyTime=1660630724
+  Cookie: lastCountyId=57411; lastCountyPinyin=nanchong;lastProvinceId=35;lastCountyTime=1660630724
+  Host: tianqi.2345.com
+  Referer: https://tianqi.2345.com/wea_forty/57411.htm?time=1661443200
+  Sec-Fetch-Dest: empty
+  Sec-Fetch-Mode: cors
+  Sec-Fetch-Site: same-origin
+  User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36
+  X-Requested-With: XMLHttpRequest
+  sec-ch-ua: '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"'
+  sec-ch-ua-mobile: ?0
+  sec-ch-ua-platform: "macOS"
