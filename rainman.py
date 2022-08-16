@@ -255,6 +255,8 @@ def main():
     if debug:
         lev = logging.DEBUG
     hs = []
+    logging.basicConfig(level=lev,
+                        format='%(asctime)s %(levelname)s %(pathname)s:%(lineno)d %(thread)s %(message)s')
     file_handler = handlers.TimedRotatingFileHandler(filename="./rainman.log", when='D', backupCount=1,
                                                      encoding='utf-8')
     hs.append(file_handler)
