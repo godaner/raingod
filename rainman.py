@@ -19,6 +19,7 @@ class weather:
     date: str
     date_text: str
     whole_wea: str
+    week: str
     # day_wea: str
     # night_wea: str
     # whole_temp: str
@@ -79,57 +80,67 @@ class alarm:
     def try_alarm(self, pre_old_weather: weather, old_weather: weather, pre_new_weather: weather, new_weather: weather):
         if "雨" not in old_weather.whole_wea and "雨" in new_weather.whole_wea:
             self._rain_change.append(
-                "{}: {} -> {}".format(old_weather.date, old_weather.whole_wea, new_weather.whole_wea))
+                "{} {}: {} -> {}".format(old_weather.date, old_weather.week, old_weather.whole_wea,
+                                         new_weather.whole_wea))
         if "雨" in old_weather.whole_wea and "雨" not in new_weather.whole_wea:
             self._rain_change.append(
-                "{}: {} -> {}".format(old_weather.date, old_weather.whole_wea, new_weather.whole_wea))
-        old_tmp = pre_old_weather is not None and (int(pre_old_weather.day_temp) - int(old_weather.day_temp)) < 5
-        new_tmp = pre_new_weather is not None and (int(pre_new_weather.day_temp) - int(new_weather.day_temp)) >= 5
-        if old_tmp and new_tmp:
+                "{} {}: {} -> {}".format(old_weather.date, old_weather.week, old_weather.whole_wea,
+                                         new_weather.whole_wea))
+        old_min_tmp = pre_old_weather is not None and (int(pre_old_weather.day_temp) - int(old_weather.day_temp)) < 5
+        new_max_tmp = pre_new_weather is not None and (int(pre_new_weather.day_temp) - int(new_weather.day_temp)) >= 5
+        old_max_tmp = pre_old_weather is not None and (int(pre_old_weather.day_temp) - int(old_weather.day_temp)) >= 5
+        new_min_tmp = pre_new_weather is not None and (int(pre_new_weather.day_temp) - int(new_weather.day_temp)) < 5
+        if (old_min_tmp and new_max_tmp) or (old_max_tmp and new_min_tmp):
             self._tmp_dec_change.append(
-                "{}: {} -> {}: {} => {}: {} -> {}: {}".format(pre_old_weather.date, pre_old_weather.day_temp,
-                                                              old_weather.date,
-                                                              old_weather.day_temp, pre_new_weather.date,
-                                                              pre_new_weather.day_temp, new_weather.date,
-                                                              new_weather.day_temp))
+                "{} {}: {} -> {} {}: {} => {} {}: {} -> {} {}: {}".format(pre_old_weather.date, pre_old_weather.week,
+                                                                          pre_old_weather.day_temp,
+                                                                          old_weather.date, old_weather.week,
+                                                                          old_weather.day_temp, pre_new_weather.date,
+                                                                          pre_new_weather.week,
+                                                                          pre_new_weather.day_temp,
+                                                                          new_weather.date, new_weather.week,
+                                                                          new_weather.day_temp))
+
         if new_weather.date_text == "明天" and self._tmp_dec_flag.get(new_weather.date) is None:
             self._tmp_dec_flag[pre_new_weather.date] = None
             self._tmp_dec_flag[new_weather.date] = True
             if int(pre_new_weather.day_temp) - int(new_weather.day_temp) > 5:
                 self._tmp_dec.append(
-                    "{}: {} -> {}: {}".format(pre_new_weather.date, pre_new_weather.day_temp, new_weather.date,
-                                              new_weather.day_temp))
+                    "{} {}: {} -> {} {}: {}".format(pre_new_weather.date, pre_new_weather.week,
+                                                    pre_new_weather.day_temp, new_weather.date, new_weather.week,
+                                                    new_weather.day_temp))
 
         if new_weather.date_text == "明天" and self._rain_flag.get(new_weather.date) is None:
             self._rain_flag[pre_new_weather.date] = None
             self._rain_flag[new_weather.date] = True
             if "雨" in new_weather.whole_wea:
                 self._rain.append(
-                    "{}: {} -> {}".format(new_weather.date, new_weather.whole_wea, new_weather.whole_wea))
+                    "{} {}: {}".format(new_weather.date, new_weather.week, new_weather.whole_wea))
 
     def do_it(self):
         content = []
         subject = []
-        if len(self._rain_change) > 0:
-            s = "下雨天预报改变"
-            subject.append(s)
-            content.append(s + "：\n" + "\n".join(self._rain_change))
-        if len(self._tmp_dec_change) > 0:
-            s = "气温下降预报改变"
-            subject.append(s)
-            content.append(s + "：\n" + "\n".join(self._tmp_dec_change))
         if len(self._tmp_dec) > 0:
-            s = "气温下降"
+            s = "明天气温大降"
             subject.append(s)
             content.append(s + "：\n" + "\n".join(self._tmp_dec))
         if len(self._rain) > 0:
-            s = "下雨天"
+            s = "明天下雨"
             subject.append(s)
             content.append(s + "：\n" + "\n".join(self._rain))
+        if len(self._rain_change) > 0:
+            s = "天气大幅更新"
+            subject.append(s)
+            content.append(s + "：\n" + "\n".join(self._rain_change))
+        if len(self._tmp_dec_change) > 0:
+            s = "气温大幅更新"
+            subject.append(s)
+            content.append(s + "：\n" + "\n".join(self._tmp_dec_change))
         if len(content) > 0:
             content = "\n".join(content)
-            self._logger.info(content)
-            self._email.send(self._name + ": " + ",".join(subject), content)
+            subject = self._name + ": " + ",".join(subject)
+            self._logger.info(subject + "\n" + content)
+            self._email.send(subject, content)
 
 
 class report:
@@ -171,12 +182,15 @@ class report:
             weather_d.time = time.localtime(data['time'])
             weather_d.date = data['date']
             weather_d.whole_wea = data['whole_wea']
-            weather_d.day_wea = data['day_wea']
-            weather_d.night_wea = data['night_wea']
-            weather_d.whole_temp = data['whole_temp']
+            # weather_d.whole_wea = random.sample(["雨", "小雨", "晴天", "大晴天", "阴天"], 1)[0]
+            # weather_d.day_wea = data['day_wea']
+            # weather_d.night_wea = data['night_wea']
+            # weather_d.whole_temp = data['whole_temp']
             weather_d.day_temp = data['day_temp']
-            weather_d.night_temp = data['night_temp']
+            # weather_d.day_temp = random.sample([39, 25, 33, 75], 1)[0]
+            # weather_d.night_temp = data['night_temp']
             weather_d.date_text = data['date_text']
+            weather_d.week = data['week']
             new_weather_m[weather_d.date] = weather_d
 
         if len(old_weather_m) != 0:
@@ -212,8 +226,8 @@ class rainman:
     def analyze(self, rep: report):
         while 1:
             rep.analyze()
-            sec = random.randint(30, 300)
-            # sec = random.randint(1, 5)
+            # sec = random.randint(30, 300)
+            sec = random.randint(1, 5)
             self._logger.info("fetch {} in {}s...".format(rep.name(), sec))
             time.sleep(sec)
 
