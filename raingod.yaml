@@ -1,3 +1,4 @@
+debug: false
 reports:
   - name: 遂宁-安居
     email:

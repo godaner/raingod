@@ -193,7 +193,7 @@ class report:
         old_weather_m = self._weather_m
         try:
             for data in resp['data']:
-                self._logger.info("get {} data: {}".format(self._name, data))
+                self._logger.debug("get {} data: {}".format(self._name, json.dumps(data, ensure_ascii=False)))
                 weather_d = weather()
                 weather_d.time = time.localtime(data['time'])
                 weather_d.date = data['date']
