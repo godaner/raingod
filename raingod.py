@@ -193,7 +193,7 @@ class report:
         old_weather_m = self._weather_m
         try:
             for data in resp['data']:
-                # self._logger.info("data: {}".format(data))
+                self._logger.info("get {} data: {}".format(self._name, data))
                 weather_d = weather()
                 weather_d.time = time.localtime(data['time'])
                 weather_d.date = data['date']
@@ -209,7 +209,7 @@ class report:
                 weather_d.week = data['week']
                 new_weather_m[weather_d.date] = weather_d
         except BaseException as e:
-            self._logger.error("parse data err: {}".format(e))
+            self._logger.error("parse {} data err: {}".format(self._name, e))
             return
 
         if len(old_weather_m) != 0:
