@@ -191,27 +191,22 @@ class report:
         self._logger.info("fetch {} resp code: {}".format(self._name, resp['code']))
         new_weather_m = {}
         old_weather_m = self._weather_m
-        try:
-            for data in resp['data']:
-                self._logger.debug("get {} data: {}".format(self._name, json.dumps(data, ensure_ascii=False)))
-                weather_d = weather()
-                weather_d.time = time.localtime(data['time'])
-                weather_d.date = data['date']
-                weather_d.whole_wea = data['whole_wea']
-                # weather_d.whole_wea = random.sample(["雨", "小雨", "晴天", "大晴天", "阴天"], 1)[0]
-                # weather_d.day_wea = data['day_wea']
-                # weather_d.night_wea = data['night_wea']
-                # weather_d.whole_temp = data['whole_temp']
-                weather_d.day_temp = data['day_temp']
-                # weather_d.day_temp = random.sample([39, 25, 33, 75], 1)[0]
-                # weather_d.night_temp = data['night_temp']
-                weather_d.date_text = data['date_text']
-                weather_d.week = data['week']
-                new_weather_m[weather_d.date] = weather_d
-        except BaseException as e:
-            self._logger.error("parse {} data err: {}".format(self._name, e))
-            return
-
+        for data in resp['data']:
+            self._logger.debug("get {} data: {}".format(self._name, json.dumps(data, ensure_ascii=False)))
+            weather_d = weather()
+            weather_d.time = time.localtime(data['time'])
+            weather_d.date = data['date']
+            weather_d.whole_wea = data['whole_wea']
+            # weather_d.whole_wea = random.sample(["雨", "小雨", "晴天", "大晴天", "阴天"], 1)[0]
+            # weather_d.day_wea = data['day_wea']
+            # weather_d.night_wea = data['night_wea']
+            # weather_d.whole_temp = data['whole_temp']
+            weather_d.day_temp = data['day_temp']
+            # weather_d.day_temp = random.sample([39, 25, 33, 75], 1)[0]
+            # weather_d.night_temp = data['night_temp']
+            weather_d.date_text = data['date_text']
+            weather_d.week = data['week']
+            new_weather_m[weather_d.date] = weather_d
         if len(old_weather_m) != 0:
             pre_new_weather = None
             pre_old_weather = None
@@ -244,7 +239,10 @@ class raingod:
 
     def analyze(self, rep: report):
         while 1:
-            rep.analyze()
+            try:
+                rep.analyze()
+            except BaseException as e:
+                self._logger.info("analyze {} err: {}".format(rep.name(), e))
             sec = random.randint(30, 300)
             # sec = random.randint(1, 5)
             self._logger.info("fetch {} in {}s...".format(rep.name(), sec))
