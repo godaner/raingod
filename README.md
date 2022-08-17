@@ -1,2 +1,2 @@
-# rainman
-rain change report
+# raingod
+weather report
