@@ -103,21 +103,33 @@ class alarm:
                                                                           new_weather.date, new_weather.week,
                                                                           new_weather.day_temp))
 
-        if new_weather.date_text == "明天" and self._tmp_dec_flag.get(new_weather.date) is None:
-            self._tmp_dec_flag[pre_new_weather.date] = None
-            self._tmp_dec_flag[new_weather.date] = True
-            if int(pre_new_weather.day_temp) - int(new_weather.day_temp) > 5:
-                self._tmp_dec.append(
-                    "{} {}: {} -> {} {}: {}".format(pre_new_weather.date, pre_new_weather.week,
-                                                    pre_new_weather.day_temp, new_weather.date, new_weather.week,
-                                                    new_weather.day_temp))
+        if new_weather.date_text == "明天":
+            flag_key = "{}-{}".format(self._name, new_weather.date)
+            pre_flag_key = "{}-{}".format(self._name, pre_new_weather.date)
+            if self._tmp_dec_flag.get(flag_key) is None:
+                self._tmp_dec_flag[pre_flag_key] = None
+                self._tmp_dec_flag[flag_key] = True
+                if int(pre_new_weather.day_temp) - int(new_weather.day_temp) > 5:
+                    self._tmp_dec.append(
+                        "{} {}: {} -> {} {}: {}".format(pre_new_weather.date, pre_new_weather.week,
+                                                        pre_new_weather.day_temp, new_weather.date, new_weather.week,
+                                                        new_weather.day_temp))
 
-        if new_weather.date_text == "明天" and self._rain_flag.get(new_weather.date) is None:
-            self._rain_flag[pre_new_weather.date] = None
-            self._rain_flag[new_weather.date] = True
-            if "雨" in new_weather.whole_wea:
-                self._rain.append(
-                    "{} {}: {}".format(new_weather.date, new_weather.week, new_weather.whole_wea))
+        if new_weather.date_text == "明天":
+            flag_key = "{}-{}".format(self._name, new_weather.date)
+            pre_flag_key = "{}-{}".format(self._name, pre_new_weather.date)
+            if self._rain_flag.get(flag_key) is None:
+                self._rain_flag[pre_flag_key] = None
+                self._rain_flag[flag_key] = True
+                if "雨" in new_weather.whole_wea:
+                    self._rain.append(
+                        "{} {}: {}".format(new_weather.date, new_weather.week, new_weather.whole_wea))
+
+    def _clear(self):
+        self._rain_change = []
+        self._tmp_dec_change = []
+        self._rain = []
+        self._tmp_dec = []
 
     def do_it(self):
         content = []
@@ -143,6 +155,7 @@ class alarm:
             subject = self._name + ": " + ",".join(subject)
             self._logger.info(subject + "\n" + content)
             self._email.send(subject, content)
+        self._clear()
 
 
 class report:
