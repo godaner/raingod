@@ -13,6 +13,8 @@ import sys
 import time
 import yaml
 
+name = "raingod"
+
 
 class weather:
     time: str
@@ -55,7 +57,7 @@ class email:
         smtp.login(self._user, self._pwd)
         try:
             message = MIMEText(content, 'plain', 'utf-8')
-            message['From'] = Header("rainman", 'utf-8')
+            message['From'] = Header(name, 'utf-8')
             message['Subject'] = Header(subject, 'utf-8')
             smtp.sendmail(self._user, self._to, message.as_string())
             self._logger.error("send email to {} success".format(self._to))
@@ -176,22 +178,26 @@ class report:
         self._logger.info("fetch {} resp code: {}".format(self._name, resp['code']))
         new_weather_m = {}
         old_weather_m = self._weather_m
-        for data in resp['data']:
-            # self._logger.info("data: {}".format(data))
-            weather_d = weather()
-            weather_d.time = time.localtime(data['time'])
-            weather_d.date = data['date']
-            weather_d.whole_wea = data['whole_wea']
-            # weather_d.whole_wea = random.sample(["雨", "小雨", "晴天", "大晴天", "阴天"], 1)[0]
-            # weather_d.day_wea = data['day_wea']
-            # weather_d.night_wea = data['night_wea']
-            # weather_d.whole_temp = data['whole_temp']
-            weather_d.day_temp = data['day_temp']
-            # weather_d.day_temp = random.sample([39, 25, 33, 75], 1)[0]
-            # weather_d.night_temp = data['night_temp']
-            weather_d.date_text = data['date_text']
-            weather_d.week = data['week']
-            new_weather_m[weather_d.date] = weather_d
+        try:
+            for data in resp['data']:
+                # self._logger.info("data: {}".format(data))
+                weather_d = weather()
+                weather_d.time = time.localtime(data['time'])
+                weather_d.date = data['date']
+                weather_d.whole_wea = data['whole_wea']
+                # weather_d.whole_wea = random.sample(["雨", "小雨", "晴天", "大晴天", "阴天"], 1)[0]
+                # weather_d.day_wea = data['day_wea']
+                # weather_d.night_wea = data['night_wea']
+                # weather_d.whole_temp = data['whole_temp']
+                weather_d.day_temp = data['day_temp']
+                # weather_d.day_temp = random.sample([39, 25, 33, 75], 1)[0]
+                # weather_d.night_temp = data['night_temp']
+                weather_d.date_text = data['date_text']
+                weather_d.week = data['week']
+                new_weather_m[weather_d.date] = weather_d
+        except BaseException as e:
+            self._logger.error("parse data err: {}".format(e))
+            return
 
         if len(old_weather_m) != 0:
             pre_new_weather = None
@@ -208,7 +214,7 @@ class report:
         self._weather_m = new_weather_m
 
 
-class rainman:
+class raingod:
     def __init__(self, conf: {}):
         self._logger = logging.getLogger()
         self._conf = conf
@@ -242,7 +248,7 @@ class rainman:
 
 def main():
     if len(sys.argv) != 2:
-        config_file = "./rainman.yaml"
+        config_file = "./{}.yaml".format(name)
     else:
         config_file = sys.argv[1]
     with open(config_file, 'r') as f:
@@ -255,7 +261,7 @@ def main():
     if debug:
         lev = logging.DEBUG
     hs = []
-    file_handler = handlers.TimedRotatingFileHandler(filename="./rainman.log", when='D', backupCount=1,
+    file_handler = handlers.TimedRotatingFileHandler(filename="./{}.log".format(name), when='D', backupCount=1,
                                                      encoding='utf-8')
     hs.append(file_handler)
     console_handler = logging.StreamHandler(sys.stdout)
@@ -263,8 +269,8 @@ def main():
     logging.basicConfig(level=lev,
                         format='%(asctime)s %(levelname)s %(pathname)s:%(lineno)d %(thread)s %(message)s', handlers=hs)
     logger = logging.getLogger()
-    rm = rainman(conf)
-    logger.info("rainman info: {0}".format(rm))
+    rm = raingod(conf)
+    logger.info("{} info: {}".format(name, rm))
     rm.start()
 
 
