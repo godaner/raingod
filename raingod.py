@@ -73,6 +73,7 @@ class alarm:
         self._rain_change = []
         self._tmp_dec_change = []
         self._rain = []
+        self._tmp_change = []
         self._rain_flag = {}
         self._tmp_dec = []
         self._tmp_dec_flag = {}
@@ -80,6 +81,10 @@ class alarm:
         self._name = name
 
     def try_alarm(self, pre_old_weather: weather, old_weather: weather, pre_new_weather: weather, new_weather: weather):
+        if abs(int(new_weather.day_temp) - int(old_weather.day_temp)) >= 5:
+            self._tmp_change.append(
+                "{} {}: {} -> {}".format(old_weather.date, old_weather.week, old_weather.day_temp,
+                                         new_weather.day_temp))
         if "雨" not in old_weather.whole_wea and "雨" in new_weather.whole_wea:
             self._rain_change.append(
                 "{} {}: {} -> {}".format(old_weather.date, old_weather.week, old_weather.whole_wea,
@@ -94,14 +99,19 @@ class alarm:
         new_min_tmp = pre_new_weather is not None and (int(pre_new_weather.day_temp) - int(new_weather.day_temp)) < 5
         if (old_min_tmp and new_max_tmp) or (old_max_tmp and new_min_tmp):
             self._tmp_dec_change.append(
-                "{} {}: {} -> {} {}: {} => {} {}: {} -> {} {}: {}".format(pre_old_weather.date, pre_old_weather.week,
-                                                                          pre_old_weather.day_temp,
-                                                                          old_weather.date, old_weather.week,
-                                                                          old_weather.day_temp, pre_new_weather.date,
-                                                                          pre_new_weather.week,
-                                                                          pre_new_weather.day_temp,
-                                                                          new_weather.date, new_weather.week,
-                                                                          new_weather.day_temp))
+                "{} {} - {} {}: {} - {} -> {} - {}".format(pre_old_weather.date, pre_old_weather.week,
+                                                           old_weather.date, old_weather.week, pre_old_weather.day_temp,
+                                                           old_weather.day_temp, pre_new_weather.day_temp,
+                                                           new_weather.day_temp))
+            # self._tmp_dec_change.append(
+            #     "{} {}: {} -> {} {}: {} => {} {}: {} -> {} {}: {}".format(pre_old_weather.date, pre_old_weather.week,
+            #                                                               pre_old_weather.day_temp,
+            #                                                               old_weather.date, old_weather.week,
+            #                                                               old_weather.day_temp, pre_new_weather.date,
+            #                                                               pre_new_weather.week,
+            #                                                               pre_new_weather.day_temp,
+            #                                                               new_weather.date, new_weather.week,
+            #                                                               new_weather.day_temp))
 
         if new_weather.date_text == "明天":
             flag_key = "{}-{}".format(self._name, new_weather.date)
@@ -127,6 +137,7 @@ class alarm:
 
     def _clear(self):
         self._rain_change = []
+        self._tmp_change = []
         self._tmp_dec_change = []
         self._rain = []
         self._tmp_dec = []
@@ -134,20 +145,24 @@ class alarm:
     def do_it(self):
         content = []
         subject = []
-        if len(self._tmp_dec) > 0:
-            s = "明天气温大降"
-            subject.append(s)
-            content.append(s + "：\n" + "\n".join(self._tmp_dec))
         if len(self._rain) > 0:
             s = "明天下雨"
             subject.append(s)
             content.append(s + "：\n" + "\n".join(self._rain))
+        if len(self._tmp_dec) > 0:
+            s = "明天气温大降"
+            subject.append(s)
+            content.append(s + "：\n" + "\n".join(self._tmp_dec))
         if len(self._rain_change) > 0:
             s = "天气大幅更新"
             subject.append(s)
             content.append(s + "：\n" + "\n".join(self._rain_change))
-        if len(self._tmp_dec_change) > 0:
+        if len(self._tmp_change) > 0:
             s = "气温大幅更新"
+            subject.append(s)
+            content.append(s + "：\n" + "\n".join(self._tmp_change))
+        if len(self._tmp_dec_change) > 0:
+            s = "升/降温大幅更新"
             subject.append(s)
             content.append(s + "：\n" + "\n".join(self._tmp_dec_change))
         if len(content) > 0:
