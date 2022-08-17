@@ -189,10 +189,10 @@ class report:
         resp = json.loads(resp.read())
 
         self._logger.info("fetch {} resp code: {}".format(self._name, resp['code']))
+        self._logger.debug("fetch {} resp: {}".format(self._name, json.dumps(resp, ensure_ascii=False)))
         new_weather_m = {}
         old_weather_m = self._weather_m
         for data in resp['data']:
-            self._logger.debug("get {} data: {}".format(self._name, json.dumps(data, ensure_ascii=False)))
             weather_d = weather()
             weather_d.time = time.localtime(data['time'])
             weather_d.date = data['date']
