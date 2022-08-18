@@ -60,7 +60,7 @@ class email:
             message['From'] = Header(name, 'utf-8')
             message['Subject'] = Header(subject, 'utf-8')
             smtp.sendmail(self._user, self._to, message.as_string())
-            self._logger.error("send email to {} success".format(self._to))
+            self._logger.info("send email to {} success".format(self._to))
         except smtplib.SMTPException as e:
             self._logger.error("send email to {} fail: {}".format(self._to, e))
         finally:
